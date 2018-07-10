@@ -1,0 +1,10 @@
+---
+- hosts: vb
+
+  tasks:
+    - ping: ~
+
+    - name: Install cowsay
+      apt:
+        name: cowsay
+      become: true
