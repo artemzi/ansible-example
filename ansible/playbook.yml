@@ -1,6 +1,9 @@
 ---
 - hosts: vb
 
+  vars:
+    symfony_root_dir: /var/www/project
+
   tasks:
     - ping: ~
 
@@ -18,6 +21,14 @@
       apt:
         name: cowsay
       become: true
+
+    - name: Install low-level utilities
+      become: true
+      apt:
+        name: "{{ item }}"
+      with_items:
+        - zip
+        - unzip
 
     - name: Install Git VCS
       become: true
@@ -53,6 +64,7 @@
         - php7.1-fpm
         - php7.1-intl
         - php7.1-mysql
+        - php7.1-xml
 
     - name: Set date.timezone for CLI
       become: true
@@ -67,3 +79,36 @@
         path: /etc/php/7.1/fpm/php.ini
         regexp: "date.timezone ="
         line: "date.timezone = UTC"
+
+    - name: Create a project directory and set its permissions
+      become: true
+      file:
+        path: "{{ symfony_root_dir }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        recurse: true
+
+    - name: Checkout Git repository
+      git:
+        repo: https://github.com/symfony/symfony-standard.git
+        dest: "{{ symfony_root_dir }}"
+        force: yes
+
+    - name: Download composer
+      script: scripts/install_composer.sh
+
+    - name: Move composer globally
+      become: true
+      command: "mv composer.phar /usr/local/bin/composer"
+
+    - name: Set Permissions on Composer
+      become: true
+      file:
+        path: /usr/local/bin/composer
+        mode: "a+x"
+
+    - name: Install Composer's dependencies
+      composer:
+        working_dir: "{{ symfony_root_dir }}"
+        no_dev: no
