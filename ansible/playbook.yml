@@ -43,6 +43,7 @@
       apt:
         name: nginx
         state: latest
+      notify: Reload Nginx
 
     - name: Install MySQL DB server
       become: true
@@ -67,6 +68,7 @@
         - php7.1-intl
         - php7.1-mysql
         - php7.1-xml
+      notify: Restart PHP-FPM
 
     - name: Set date.timezone for CLI
       become: true
@@ -81,6 +83,7 @@
         path: /etc/php/7.1/fpm/php.ini
         regexp: "date.timezone ="
         line: "date.timezone = UTC"
+      notify: Restart PHP-FPM
 
     - name: Create a project directory and set its permissions
       become: true
@@ -120,6 +123,7 @@
       template:
         src: templates/symfony.conf
         dest: "/etc/nginx/sites-available/{{ server_name }}.conf"
+      notify: Reload Nginx
 
     - name: Enable Symfony config template from Nginx available sites
       become: true
@@ -127,6 +131,7 @@
         src: "/etc/nginx/sites-available/{{ server_name }}.conf"
         dest: "/etc/nginx/sites-enabled/{{ server_name }}.conf"
         state: link
+      notify: Reload Nginx
 
     - name: Add enabled Nginx site /etc/hosts
       become: true
@@ -134,3 +139,17 @@
         dest: /etc/hosts
         regexp: "{{ server_name }}"
         line: "127.0.0.1 {{ server_name }}"
+
+  handlers:
+    - name: Reload Nginx
+      become: true
+      service:
+        name: nginx
+        state: reloaded
+
+  handlers:
+    - name: Restart PHP-FPM
+      become: true
+      service:
+        name: php7.1-fpm
+        state: restarted
